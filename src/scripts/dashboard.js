@@ -1,5 +1,27 @@
 import { ASSEMBLYAI_API_KEY } from "../utils/config.js";
 
+const user = JSON.parse(localStorage.getItem("sakpase_user"));
+// const wasLoggedIn = localStorage.getItem("sakpase_logged_in") === "true";
+
+// Set the greeting text
+if (user) {
+  document.getElementById("greeting").textContent = `Welcome, ${user.username}!`;
+}
+
+// // Show welcome-back message only once right after login
+// if (user && wasLoggedIn) {
+//   const msg = document.createElement("div");
+//   msg.textContent = `👋 Welcome back, ${user.username}!`;
+//   msg.classList.add("welcome-back-message");
+
+//   const main = document.querySelector("main");
+//   main.insertBefore(msg, main.firstChild);
+
+//   setTimeout(() => {
+//     msg.classList.add("fade-out");
+//   }, 2000);
+// }
+
 async function uploadAudio(file) {
   const response = await fetch("https://api.assemblyai.com/v2/upload", {
     method: "POST",
@@ -70,6 +92,8 @@ document.getElementById("uploadBtn").addEventListener("click", async () => {
 
       if (result.status === "completed") {
         output.value = result.text;
+        document.getElementById("exportSection").style.display = "block"; // 👈 Show export buttons
+        completed = true;
         const history = JSON.parse(localStorage.getItem("transcription_history") || "[]");
         history.unshift({
             id: Date.now(),
@@ -135,6 +159,21 @@ document.getElementById("exportTxtBtn").addEventListener("click", () => {
     link.download = "transcription.docx";
     link.click();
   });
+
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    const confirmLogout = confirm("Are you sure you want to log out?");
+    
+    if (confirmLogout) {
+      localStorage.setItem("sakpase_logged_in", "false");
+  
+      // Redirect to login or homepage
+      window.location.href = "/index.html";
+    } else {
+      // Do nothing, user stays logged in
+      console.log("Logout canceled by user.");
+    }
+  });
+  
   
   function loadHistory() {
     const list = document.getElementById("historyList");

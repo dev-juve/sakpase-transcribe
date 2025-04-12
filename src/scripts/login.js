@@ -18,4 +18,6 @@ document.getElementById("loginForm").addEventListener("submit", function (e) {
     localStorage.setItem("sakpase_logged_in", "true");
     window.location.href = "../dashboard/dashboard.html";
   });
+
+  
   
