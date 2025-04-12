@@ -1,4 +1,4 @@
-import { ASSEMBLYAI_API_KEY } from "../utils/config.js";
+const ASSEMBLYAI_API_KEY = import.meta.env.VITE_ASSEMBLYAI_API_KEY;
 
 const user = JSON.parse(localStorage.getItem("sakpase_user"));
 // const wasLoggedIn = localStorage.getItem("sakpase_logged_in") === "true";
