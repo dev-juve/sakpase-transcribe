@@ -4,60 +4,105 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard - SakPase Transcribe</title>
-  <link rel="stylesheet" href="../style/style.css" />
+  <link rel="stylesheet" href="/src/style/style.css" />
 </head>
 <body>
   <header>
     <div class="container">
       <a href="/index.html"><h1>SakPase Transcribe</h1></a>
-      <button id="logoutBtn">Logout</button>
+      <button id="logoutBtn" class="btn danger">Logout</button>
     </div>
   </header>
 
   <main class="dashboard-container">
     <h2 id="greeting">Welcome!</h2>
 
-    <section class="upload-section">
-        <h3>Upload Audio for Transcription</h3>
-        <input type="file" id="audioInput" accept=".mp3, .wav, .m4a" />
-      
-        <label for="languageSelect">Language (optional):</label>
-        <select id="languageSelect">
-          <option value="">Auto Detect</option>
-          <option value="en">English</option>
-          <option value="fr">French</option>
-          <option value="fr-ca">French Canadian</option>
-          <option value="ht">Haitian Creole</option>
-        </select>
-      
-        <button id="uploadBtn">Upload & Transcribe</button>
-      </section>
-      
+    <div id="resetBtnTopContainer" class="hidden">
+      <button id="resetBtnTop" class="btn outline">Start New Transcription</button>
+    </div>
 
-      <section class="results-section">
-        <h3>Transcription Result</h3>
-        <textarea id="transcriptionEditor" rows="12" placeholder="Your transcription will appear here..."></textarea>
-      </section>
-      
-      <section class="export-section" id="exportSection" style="display: none;">
-        <h3>Export Transcription</h3>
-        <button id="exportTxtBtn">Download as .txt</button>
-        <button id="exportPdfBtn">Download as .pdf</button>
-        <button id="exportDocxBtn">Download as .docx</button>
-      </section>
-      <section class="history-section">
-        <h3>Transcription History</h3>
-        <ul id="historyList"></ul>
-      </section>
+    <section class="upload-section" id="uploadSection">
+      <div id="uploadContent" class="fade fade-in">
+        <h3>Upload Audio for Transcription</h3>
+
+        <div id="uploadForm" class="">
+          <input type="file" id="audioInput" accept=".mp3, .wav, .m4a" />
+          <label for="languageSelect">Language (optional):</label>
+          <select id="languageSelect">
+            <option value="">Auto Detect</option>
+            <option value="en">English</option>
+            <option value="fr">French</option>
+            <option value="fr-ca">French Canadian</option>
+            <option value="ht">Haitian Creole</option>
+          </select>
+          <button id="uploadBtn" class="btn">Upload Audio</button>
+        </div>
+
+        <div id="uploadPreview" class="hidden preview-box">
+          <p><strong>File:</strong> <span id="fileName"></span></p>
+          <p><strong>Size:</strong> <span id="fileSize"></span></p>
+          <p><strong>Duration:</strong> <span id="fileDuration"></span></p>
+          <button id="startTranscriptionBtn" class="btn primary">Start Transcription</button>
+        </div>
+      </div>
+
+      <div class="progress-container hidden" id="uploadProgress">
+        <div class="progress-bar" id="uploadBar">
+          <span id="uploadStatusText">Uploading audio...</span>
+        </div>
+      </div>
+
+      <div class="progress-container hidden" id="transcribeProgress">
+        <div class="progress-bar" id="transcribeBar">
+          <span id="transcribeStatusText">
+            Transcribing audio... <span id="transcribePercent">0%</span>
+            <span class="spinner">⏳</span>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <section class="results-section">
+      <h3>Transcription Result</h3>
+      <audio id="audioPlayer" controls class="hidden"></audio>
+      <p id="shortcutHint" class="shortcut-hint hidden">
+        🎧 Press <strong>F1</strong> to rewind 5s, <strong>F2</strong> to skip forward 5s
+      </p>
+      <div class="audio-controls hidden" id="audioControls">
+        <button id="backBtn" class="btn small">⏪ 5s</button>
+        <button id="forwardBtn" class="btn small">5s ⏩</button>
+      </div>
+      <textarea id="transcriptionEditor" rows="12" placeholder="Your transcription will appear here..."></textarea>
+
+      <button id="resetBtn" class="btn outline hidden">Start New Transcription</button>
+    </section>
+
+    <section class="export-section hidden" id="exportSection">
+      <h3>Export Transcription</h3>
+      <button id="exportTxtBtn" class="btn">Download as .txt</button>
+      <button id="exportPdfBtn" class="btn">Download as .pdf</button>
+      <button id="exportDocxBtn" class="btn">Download as .docx</button>
+    </section>
+
+    <section class="history-section">
+      <h3>Transcription History</h3>
+      <ul id="historyList"></ul>
+    </section>
   </main>
 
-  <footer>
-    <p>&copy; 2025 SakPase Transcribe</p>
-  </footer>
-
-  <script src="../scripts/dashboard.js" type="module"></script>
+  <script src="/src/scripts/dashboard.js" type="module"></script>
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
+  <!-- Modal Confirmation -->
+  <div id="confirmModal" class="modal hidden">
+    <div class="modal-content">
+      <p>Are you sure you want to start a new transcription? Your current work will be lost.</p>
+      <div class="modal-buttons">
+        <button id="confirmYes" class="btn primary">Yes, start new</button>
+        <button id="confirmNo" class="btn outline">Cancel</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
