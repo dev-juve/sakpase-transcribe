@@ -25,7 +25,7 @@
       <div id="uploadContent" class="fade fade-in">
         <h3>Upload Audio for Transcription</h3>
 
-        <div id="uploadForm" class="">
+        <div id="uploadForm">
           <input type="file" id="audioInput" accept=".mp3, .wav, .m4a" />
           <label for="languageSelect">Language (optional):</label>
           <select id="languageSelect">
@@ -54,11 +54,11 @@
 
       <div class="progress-container hidden" id="transcribeProgress">
         <div class="progress-bar" id="transcribeBar">
-          <span id="transcribeStatusText">
-            Transcribing audio... <span id="transcribePercent">0%</span>
-            <span class="spinner">⏳</span>
-          </span>
+          <span id="transcribeStatusText">Transcribing audio...</span>
+          <span id="transcribePercent">0%</span>
+          <span class="spinner">⏳</span>
         </div>
+      </div>      
       </div>
     </section>
 

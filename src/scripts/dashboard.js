@@ -23,12 +23,10 @@ const startTranscriptionBtn = document.getElementById("startTranscriptionBtn");
 let uploadedAudioUrl = "";
 let uploadedFile = null;
 
-// Redirect unauthorized access
 if (localStorage.getItem("sakpase_logged_in") !== "true") {
   window.location.href = "/src/auth/login.html";
 }
 
-// Welcome user
 if (user) {
   const greeting = document.getElementById("greeting");
   if (greeting) greeting.textContent = `Welcome, ${user.username}!`;
@@ -52,7 +50,6 @@ function showToast(message) {
   }, 3000);
 }
 
-// Upload Audio Handler
 document.getElementById("uploadBtn").addEventListener("click", async () => {
   const file = fileInput.files[0];
   if (!file) return alert("Please select a file.");
@@ -90,7 +87,7 @@ document.getElementById("uploadBtn").addEventListener("click", async () => {
     uploadStatus.textContent = "Upload completed ✅";
 
     uploadPreview.classList.remove("hidden");
-    uploadForm.classList.add("hidden"); // hide upload after success
+    uploadForm.classList.add("hidden");
   } catch (err) {
     uploadBar.classList.add("error");
     uploadStatus.textContent = "Upload failed ❌";
@@ -107,7 +104,6 @@ async function uploadAudio(file) {
   return data.upload_url;
 }
 
-// Start Transcription
 startTranscriptionBtn.addEventListener("click", () => {
   startTranscriptionBtn.disabled = true;
   startTranscriptionBtn.classList.add("disabled");
@@ -117,15 +113,20 @@ startTranscriptionBtn.addEventListener("click", () => {
   document.getElementById("transcribeBar").classList.remove("success", "error");
   document.getElementById("transcribeBar").style.width = "10%";
   fileInput.value = "";
+
   startTranscription(uploadedAudioUrl, lang);
 });
 
 async function transcribeAudio(audioUrl, languageCode = "") {
   const body = { audio_url: audioUrl };
-  const supportedLanguages = ["en", "fr", "fr-ca"];
-  if (languageCode === "ht") {
-    showToast("⚠️ Haitian Creole is not officially supported. Auto-detecting...");
-  } else if (supportedLanguages.includes(languageCode)) {
+  const unsupported = {
+    ht: "⚠️ Haitian Creole is not officially supported. Auto-detecting...",
+    "fr-ca": "⚠️ Canadian French is not officially supported. Auto-detecting..."
+  };
+
+  if (unsupported[languageCode]) {
+    showToast(unsupported[languageCode]);
+  } else if (languageCode) {
     body.language_code = languageCode;
   }
 
@@ -155,54 +156,97 @@ async function startTranscription(audioUrl, languageCode) {
   const status = document.getElementById("transcribeStatusText");
   const percentText = document.getElementById("transcribePercent");
 
+  if (!bar || !status || !percentText) {
+    console.error("Transcription elements not found");
+    showToast("Transcription elements not found", "error");
+    return;
+  }
+
+  const unsupported = {
+    ht: "⚠️ Haitian Creole is not officially supported. Auto-detecting...",
+    "fr-ca": "⚠️ Canadian French is not officially supported. Auto-detecting..."
+  };
+
+  if (unsupported[languageCode]) {
+    showToast(unsupported[languageCode]);
+    languageCode = "";
+  }
+
   try {
     const id = await transcribeAudio(audioUrl, languageCode);
-    let percent = 10;
+    let lastStatus = "";
     let complete = false;
 
     while (!complete) {
       const res = await checkTranscriptionStatus(id);
-      if (res.status === "completed") {
-        editor.value = res.text;
-        bar.style.width = "100%";
-        bar.classList.add("success");
-        status.textContent = "Transcription completed ✅";
-        document.getElementById("exportSection").classList.remove("hidden");
-      
-        // Ensure audio is loaded and visible
-        const audioUrlBlob = URL.createObjectURL(uploadedFile);
-        audioPlayer.setAttribute("src", audioUrlBlob);
-        audioPlayer.style.display = "block";         
-        audioPlayer.classList.remove("hidden");    
-        audioPlayer.controls = true;          
-        audioPlayer.load();
-      
-        document.getElementById("audioControls").classList.remove("hidden");
-        document.getElementById("shortcutHint").classList.remove("hidden");
-      
-        resetBtn.classList.remove("hidden");
-        resetBtnTop.classList.remove("hidden");
-      
-        saveToHistory(uploadedFile.name, res.text);
-        complete = true;
-      } else if (res.status === "error") {
-        bar.classList.add("error");
-        status.textContent = "Transcription failed ❌";
-        editor.value = "Transcription failed.";
-        resetBtn.classList.remove("hidden");
-        resetBtnTop.classList.remove("hidden");
-        complete = true;
-      } else {
-        percent = Math.min(100, percent + 10);
-        bar.style.width = percent + "%";
-        percentText.textContent = percent + "%";
-        await new Promise(r => setTimeout(r, 3000));
+
+      if (res.status !== lastStatus) {
+        lastStatus = res.status;
+
+        switch (res.status) {
+          case "queued":
+            bar.style.width = "20%";
+            status.textContent = "Queued for transcription...";
+            percentText.textContent = "20%";
+            break;
+
+          case "processing":
+            bar.style.width = "60%";
+            status.textContent = "Processing audio...";
+            percentText.textContent = "60%";
+            break;
+
+          case "completed":
+            bar.style.width = "100%";
+            bar.classList.add("success");
+            status.textContent = "Transcription completed ✅";
+            percentText.textContent = "100%";
+            editor.value = res.text;
+            document.querySelector(".spinner")?.classList.add("hidden");
+
+            document.getElementById("exportSection").classList.remove("hidden");
+
+            audioPlayer.src = URL.createObjectURL(uploadedFile);
+            audioPlayer.style.display = "block";
+            audioPlayer.classList.remove("hidden");
+            audioPlayer.controls = true;
+            audioPlayer.load();
+
+            document.getElementById("audioControls").classList.remove("hidden");
+            document.getElementById("shortcutHint").classList.remove("hidden");
+
+            resetBtn.classList.remove("hidden");
+            resetBtnTop.classList.remove("hidden");
+
+            saveToHistory(uploadedFile.name, res.text);
+            complete = true;
+            break;
+
+          case "error":
+            bar.style.width = "100%";
+            bar.classList.add("error");
+            status.textContent = "Transcription failed ❌";
+            percentText.textContent = "0%";
+            editor.value = "Transcription failed.";
+            document.querySelector(".spinner")?.classList.add("hidden");
+
+            resetBtn.classList.remove("hidden");
+            resetBtnTop.classList.remove("hidden");
+            complete = true;
+            break;
+        }
+      }
+
+      if (!complete) {
+        await new Promise((res) => setTimeout(res, 3000));
       }
     }
   } catch (err) {
-    console.error(err);
-    status.textContent = "Transcription failed ❌";
+    console.error("Transcription error:", err);
     bar.classList.add("error");
+    status.textContent = "Transcription failed ❌";
+    percentText.textContent = "0%";
+    showToast("An error occurred during transcription", "error");
   }
 }
 
@@ -217,7 +261,7 @@ function loadHistory() {
   const list = document.getElementById("historyList");
   const history = JSON.parse(localStorage.getItem("transcription_history") || "[]");
   list.innerHTML = "";
-  history.reverse().forEach(entry => {
+  history.slice(-15).reverse().forEach(entry => {
     const li = document.createElement("li");
     li.textContent = `[${entry.date}] ${entry.filename}`;
     li.addEventListener("click", () => {
@@ -228,84 +272,88 @@ function loadHistory() {
 }
 loadHistory();
 
-// Audio skip buttons
 document.getElementById("backBtn").addEventListener("click", () => {
   audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 5);
 });
-
 document.getElementById("forwardBtn").addEventListener("click", () => {
   audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + 5);
 });
 
-
-// Logout
 document.getElementById("logoutBtn").addEventListener("click", () => {
   localStorage.setItem("sakpase_logged_in", "false");
-  localStorage.removeItem("sakpase_user");
   window.location.href = "/index.html";
 });
 
-// Reset App
 function resetApp() {
   editor.value = "";
   audioPlayer.src = "";
   audioPlayer.classList.add("hidden");
   document.getElementById("audioControls").classList.add("hidden");
   document.getElementById("shortcutHint").classList.add("hidden");
-  uploadForm.classList.remove("hidden")
-
+  uploadForm.classList.remove("hidden");
+  document.querySelector(".spinner")?.classList.remove("hidden");
   document.getElementById("uploadBar").style.width = "0%";
   document.getElementById("uploadBar").classList.remove("success", "error");
   document.getElementById("uploadProgress").classList.add("hidden");
-
   document.getElementById("transcribeBar").style.width = "0%";
   document.getElementById("transcribeBar").classList.remove("success", "error");
   document.getElementById("transcribeProgress").classList.add("hidden");
-
   document.getElementById("exportSection").classList.add("hidden");
   fileInput.value = "";
-
   uploadContent.classList.remove("fade-out");
   uploadContent.classList.add("fade", "fade-in");
-
   uploadPreview.classList.add("hidden");
   fileName.textContent = "";
   fileSize.textContent = "";
   fileDuration.textContent = "";
-
   resetBtn.classList.add("hidden");
   resetBtnTop.classList.add("hidden");
   startTranscriptionBtn.disabled = false;
-  startTranscriptionBtn.textContent = "Start Transcription"; // reset label
+  startTranscriptionBtn.textContent = "Start Transcription";
   startTranscriptionBtn.classList.remove("disabled");
-
 }
 
 resetBtn.addEventListener("click", () => {
   document.getElementById("confirmModal").classList.remove("hidden");
 });
-
 resetBtnTop.addEventListener("click", () => {
   document.getElementById("confirmModal").classList.remove("hidden");
 });
-
 document.getElementById("confirmYes").addEventListener("click", () => {
   document.getElementById("confirmModal").classList.add("hidden");
   resetApp();
+  window.scrollTo({ top: 0, behavior: "smooth" });
 });
-
 document.getElementById("confirmNo").addEventListener("click", () => {
   document.getElementById("confirmModal").classList.add("hidden");
 });
 
-document.addEventListener("keydown", (e) => {
-  if (document.activeElement.tagName.toLowerCase() === "textarea") return;
+let typingTimeout;
 
-  if (e.key === "F1") {
-    e.preventDefault();
-    audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 5);
-  } else if (e.key === "F2") {
-    e.preventDefault();
-    audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + 5);
+editor.addEventListener("input", () => {
+  if (!audioPlayer.paused) {
+    audioPlayer.pause();
+  }
+
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => {
+    // Resume only if audio has a source and isn't at the end
+    if (audioPlayer.src && audioPlayer.currentTime < audioPlayer.duration) {
+      audioPlayer.play().catch(() => {});
+    }
+  }, 1000); // Wait 1 second after typing stops
+});
+
+document.addEventListener("keydown", (e) => {
+  const isTextareaFocused = document.activeElement === editor;
+
+  if (isTextareaFocused) {
+    if (e.key === "F1") {
+      e.preventDefault();
+      audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 5);
+    } else if (e.key === "F2") {
+      e.preventDefault();
+      audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + 5);
+    }
   }
 });
